@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --sand: #f6f1e7;
+    }
+
+    body {
+        font-family: "Figtree", sans-serif;
+    }
+}
