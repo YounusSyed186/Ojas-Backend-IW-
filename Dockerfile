@@ -1,14 +1,3 @@
-FROM node:22-bookworm-slim AS frontend-builder
-
-WORKDIR /app/frontend
-
-COPY ojas-frontend/package*.json ./
-RUN npm install
-
-COPY ojas-frontend/ ./
-ENV VITE_API_BASE_URL=/api
-RUN npm run build
-
 FROM php:8.4-cli
 
 RUN apt-get update && apt-get install -y \
@@ -22,18 +11,24 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-COPY ojas-laravel/composer.json ojas-laravel/composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+COPY composer.json composer.lock ./
 
-COPY ojas-laravel/ ./
-COPY --from=frontend-builder /app/frontend/dist/ public/
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader \
+    --no-scripts
+
+COPY . ./
 
 RUN composer dump-autoload --optimize \
-    && mkdir -p storage/framework/cache/data \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/logs \
-    bootstrap/cache \
+    && mkdir -p \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
