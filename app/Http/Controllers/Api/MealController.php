@@ -107,6 +107,7 @@ class MealController extends Controller
         $calories = (int) ($option->calories ?? 0);
 
         return [
+            'id' => $option->id,
             'slug' => $option->slug ?: Str::slug($option->title.'-'.$option->id),
             'name' => $option->title,
             'tag' => $option->tag ?: Str::headline($category),

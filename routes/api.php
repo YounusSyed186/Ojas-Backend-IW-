@@ -25,6 +25,9 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PincodeController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\RazorpayWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -52,11 +55,25 @@ Route::get('/pincode/validate', [PincodeController::class, 'validate']);
 Route::get('/pincode/serviceable', [PincodeController::class, 'serviceable']);
 
 Route::get('/consultation-fee', [ConsultationController::class, 'fee']);
+Route::post('/webhooks/razorpay', RazorpayWebhookController::class)->middleware('throttle:120,1');
 
 // Protected routes (require auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+
+    Route::middleware('commerce.customer')->group(function () {
+        Route::get('/cart', [CartController::class, 'show']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::patch('/cart/items/{item}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{item}', [CartController::class, 'remove']);
+        Route::delete('/cart', [CartController::class, 'clear']);
+        Route::post('/cart/checkout', [OrderController::class, 'checkout'])->middleware('throttle:10,1');
+        Route::post('/orders/{order}/payments/razorpay/verify', [OrderController::class, 'verify'])->middleware('throttle:20,1');
+        Route::post('/orders/{order}/checkout/abandon', [OrderController::class, 'abandon']);
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+    });
 
     // Subscriptions
     Route::post('/subscriptions', [SubscriptionController::class, 'store']);
@@ -130,6 +147,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/subscriptions/{id}', [AdminSubscriptionController::class, 'update']);
 
         Route::get('/payments', [AdminPaymentController::class, 'index']);
+        Route::get('/orders', [\App\Http\Controllers\Api\Admin\OrderController::class, 'index']);
+        Route::get('/orders/{order}', [\App\Http\Controllers\Api\Admin\OrderController::class, 'show']);
+        Route::patch('/orders/{order}/items/{item}', [\App\Http\Controllers\Api\Admin\OrderController::class, 'updateItem']);
+        Route::post('/orders/{order}/cancel', [\App\Http\Controllers\Api\Admin\OrderController::class, 'cancel']);
 
         Route::get('/plans', [AdminPlanController::class, 'index']);
         Route::put('/plans/{id}', [AdminPlanController::class, 'update']);

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MealOption extends Model
 {
@@ -40,4 +41,6 @@ class MealOption extends Model
     {
         return $this->belongsTo(MealPlanTemplate::class);
     }
+
+    public function cartItems(): HasMany { return $this->hasMany(CartItem::class); }
 }

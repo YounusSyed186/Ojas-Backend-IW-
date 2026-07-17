@@ -30,6 +30,7 @@ class OjasDemoSeeder extends Seeder
         );
 
         Setting::updateOrCreate(['key' => 'daily_meal_cutoff'], ['value' => '18:00']);
+        Setting::updateOrCreate(['key' => 'meal_order_horizon_days'], ['value' => '30']);
         Setting::updateOrCreate(['key' => 'default_delivery_pincode'], ['value' => '560001']);
 
         $doctor = User::query()->where('role', 'doctor')->firstOrFail();

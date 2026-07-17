@@ -10,9 +10,15 @@ class Payment extends Model
     protected $fillable = [
         'gateway',
         'reference',
+        'gateway_order_id',
+        'gateway_payment_id',
+        'attempt_number',
+        'idempotency_key',
         'amount',
         'currency',
         'status',
+        'failure_code',
+        'failure_description',
         'payload',
         'paid_at',
     ];
@@ -28,5 +34,10 @@ class Payment extends Model
     public function payable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(PaymentRefund::class);
     }
 }

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'user.role' => \App\Http\Middleware\EnsureUserRole::class,
+            'commerce.customer' => \App\Http\Middleware\EnsureCommerceCustomer::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
