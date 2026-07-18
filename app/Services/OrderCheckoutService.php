@@ -132,7 +132,9 @@ class OrderCheckoutService
         $secret = config('services.razorpay.key_secret');
         if (! $key || ! $secret) throw ValidationException::withMessages(['razorpay' => 'Razorpay credentials are not configured.']);
         try {
-            return Http::withBasicAuth($key, $secret)->acceptJson()->asJson()->post('https://api.razorpay.com/v1/orders', [
+            return Http::withBasicAuth($key, $secret)
+                ->withOptions(['verify' => config('services.razorpay.ca_bundle')])
+                ->acceptJson()->asJson()->post('https://api.razorpay.com/v1/orders', [
                 'amount' => (int) round(((float) $order->grand_total) * 100), 'currency' => 'INR',
                 'receipt' => $order->order_number, 'notes' => ['order_id' => (string) $order->id, 'order_number' => $order->order_number],
             ])->throw()->json();

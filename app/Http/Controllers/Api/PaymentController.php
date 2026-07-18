@@ -89,6 +89,7 @@ class PaymentController extends Controller
 
         try {
             $order = Http::withBasicAuth($keyId, $keySecret)
+                ->withOptions(['verify' => config('services.razorpay.ca_bundle')])
                 ->acceptJson()
                 ->asJson()
                 ->post('https://api.razorpay.com/v1/orders', $orderPayload)
@@ -255,6 +256,7 @@ class PaymentController extends Controller
 
         try {
             $order = Http::withBasicAuth($keyId, $keySecret)
+                ->withOptions(['verify' => config('services.razorpay.ca_bundle')])
                 ->acceptJson()
                 ->asJson()
                 ->post('https://api.razorpay.com/v1/orders', $orderPayload)

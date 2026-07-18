@@ -39,6 +39,7 @@ return [
         'key_id' => env('RAZORPAY_KEY_ID'),
         'key_secret' => env('RAZORPAY_KEY_SECRET'),
         'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+        'ca_bundle' => env('RAZORPAY_CA_BUNDLE', resource_path('certs/cacert.pem')),
     ],
 
     'msg91' => [

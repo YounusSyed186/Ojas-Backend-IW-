@@ -15,7 +15,8 @@ class NotesController extends Controller
         $page = max((int) $request->query('page', 1), 1);
         $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
 
-        $notes = Consultation::where('doctor_id', $doctor->id)
+        $notes = Consultation::with('customer:id,name')
+            ->where('doctor_id', $doctor->id)
             ->whereNotNull('doctor_notes')
             ->where('doctor_notes', '!=', '')
             ->latest()

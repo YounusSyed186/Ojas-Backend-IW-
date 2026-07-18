@@ -41,6 +41,7 @@ class OrderRefundService
         ]);
         try {
             $response = Http::withBasicAuth(config('services.razorpay.key_id'), config('services.razorpay.key_secret'))
+                ->withOptions(['verify' => config('services.razorpay.ca_bundle')])
                 ->acceptJson()->asJson()->post("https://api.razorpay.com/v1/payments/{$payment->gateway_payment_id}/refund", [
                     'amount' => $amountPaise, 'receipt' => substr($key, 0, 40),
                     'notes' => ['order_number' => $order->order_number, 'reason' => $reason],
