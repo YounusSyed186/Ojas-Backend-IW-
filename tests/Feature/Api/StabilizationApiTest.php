@@ -294,13 +294,47 @@ class StabilizationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('active_subscription.id', $subscription->id)
             ->assertJsonPath('recent_consultations.0.payment_status', 'paid')
+            ->assertJsonPath('stats.total_consultations', 1)
+            ->assertJsonPath('stats.total_orders', 0)
+            ->assertJsonPath('stats.paid_payments', 1)
             ->assertJsonStructure([
                 'today_meals',
                 'upcoming_meals',
                 'recent_consultations',
                 'recent_payments',
+                'recent_orders',
                 'stats',
             ]);
+
+        $this->getJson('/api/customer/payments?status=paid&per_page=5')
+            ->assertOk()
+            ->assertJsonPath('payments.total', 1)
+            ->assertJsonPath('payments.per_page', 5);
+        $this->getJson('/api/customer/payments?status=pending')->assertJsonPath('payments.total', 0);
+        $this->getJson('/api/customer/consultations?status=requested')->assertJsonPath('consultations.total', 1);
+        $this->getJson('/api/customer/consultations?status=completed')->assertJsonPath('consultations.total', 0);
+    }
+
+    public function test_customer_dashboard_returns_paused_subscription_for_management(): void
+    {
+        [$user, $plan] = $this->createCustomerPlan();
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'subscription_plan_id' => $plan->id,
+            'meal_plan_template_id' => $plan->meal_plan_template_id,
+            'period' => $plan->period,
+            'status' => 'paused',
+            'delivery_pincode' => '400001',
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addWeek()->toDateString(),
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/customer/dashboard')
+            ->assertOk()
+            ->assertJsonPath('active_subscription.id', $subscription->id)
+            ->assertJsonPath('active_subscription.status', 'paused')
+            ->assertJsonPath('stats.active_subscriptions', 0);
     }
 
     public function test_public_meal_catalog_is_served_from_active_meal_options(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
+use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Subscription;
 use Illuminate\Http\JsonResponse;
@@ -15,9 +16,9 @@ class CustomerDashboardController extends Controller
     {
         $user = $request->user();
 
-        $activeSubscription = Subscription::with(['plan', 'template', 'preferences.mealOption', 'dailySelections.mealOption'])
+        $activeSubscription = Subscription::with(['plan', 'template', 'doctor', 'preferences.mealOption', 'dailySelections.mealOption'])
             ->where('user_id', $user->id)
-            ->whereIn('status', ['active', 'pending'])
+            ->whereIn('status', ['active', 'pending', 'paused'])
             ->latest()
             ->first();
 
@@ -50,8 +51,22 @@ class CustomerDashboardController extends Controller
             $q->where('user_id', $user->id);
         })->latest()->take(10)->get();
 
+        $recentOrders = Order::with('items')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->take(5)
+            ->get();
+
         $subscriptionCount = Subscription::where('user_id', $user->id)->count();
         $activeCount = Subscription::where('user_id', $user->id)->where('status', 'active')->count();
+        $consultationCount = Consultation::where('user_id', $user->id)->count();
+        $orderCount = Order::where('user_id', $user->id)->count();
+        $pendingPaymentCount = Payment::where('status', 'pending')
+            ->whereHasMorph('payable', [Subscription::class, Consultation::class], fn ($q) => $q->where('user_id', $user->id))
+            ->count();
+        $paidPaymentCount = Payment::where('status', 'paid')
+            ->whereHasMorph('payable', [Subscription::class, Consultation::class], fn ($q) => $q->where('user_id', $user->id))
+            ->count();
 
         return response()->json([
             'user' => $user,
@@ -60,30 +75,48 @@ class CustomerDashboardController extends Controller
             'upcoming_meals' => $upcomingMeals,
             'recent_consultations' => $recentConsultations,
             'recent_payments' => $recentPayments,
+            'recent_orders' => $recentOrders,
             'stats' => [
                 'total_subscriptions' => $subscriptionCount,
                 'active_subscriptions' => $activeCount,
-                'pending_payments' => $recentPayments->where('status', 'pending')->count(),
-                'paid_payments' => $recentPayments->where('status', 'paid')->count(),
+                'total_consultations' => $consultationCount,
+                'total_orders' => $orderCount,
+                'pending_payments' => $pendingPaymentCount,
+                'paid_payments' => $paidPaymentCount,
+                'upcoming_meals' => $upcomingMeals->count(),
             ],
         ]);
     }
 
     public function payments(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'nullable|in:pending,paid,failed,refunded,cancelled',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
         $payments = Payment::whereHasMorph('payable', [Subscription::class, Consultation::class], function ($q) use ($request) {
             $q->where('user_id', $request->user()->id);
-        })->latest()->paginate(20);
+        })
+            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->latest()
+            ->paginate($validated['per_page'] ?? 20);
 
         return response()->json(['payments' => $payments]);
     }
 
     public function consultations(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'nullable|in:pending,paid,requested,assigned,scheduled,completed,cancelled',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
         $consultations = Consultation::with(['doctor', 'payment'])
             ->where('user_id', $request->user()->id)
+            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->latest()
-            ->paginate(20);
+            ->paginate($validated['per_page'] ?? 20);
 
         return response()->json(['consultations' => $consultations]);
     }
